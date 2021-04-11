@@ -3,12 +3,13 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import time
+from scipy.spatial import distance
 
 from model import JBF_net
 from losses import comb_loss
 
 #class to train model
-class train_jbfnet:
+class train_jbfnet():
 
     def __init__(self):
         super(train_jbfnet, self).__init__()
@@ -20,19 +21,19 @@ class train_jbfnet:
     def initialise_models(self):
         
         try:
-            del JBFnet
+            del self.model
             torch.cuda.empty_cache()
         except NameError:
             print('Tensors not initialised')
         self.model = JBF_net().cuda()
 
         #Separate optimisers for pre training and normal training
-        den_params = list(filter(lambda p: 'prior' in p[0], JBFnet.named_parameters()))
+        den_params = list(filter(lambda p: 'denoiser' in p[0], self.model.named_parameters()))
         den_params = [p[1] for p in den_params]
-        self.optimiser_main = optim.Adam(JBFnet.parameters(), lr = 1e-4)
+        self.optimiser_main = optim.Adam(self.model.parameters(), lr = 1e-4)
         self.optimiser_prior = optim.Adam(den_params, lr = 1e-4)
 
-        model_parameters = filter(lambda p: p.requires_grad, JBFnet.parameters())
+        model_parameters = filter(lambda p: p.requires_grad, self.model.parameters())
         params = sum([np.prod(p.size()) for p in model_parameters])
 
         print('Number of trainable parameters: ' +str(params))

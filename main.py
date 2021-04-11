@@ -1,4 +1,4 @@
-#Imports
+#%%Imports
 import torch
 
 torch.backends.cudnn.benchmark=True
@@ -16,3 +16,4 @@ if __name__ == "__main__":
     dataloader = data_handler.create_dataloader()
     train_handler = train_jbfnet()
     train_handler.train_model(dataloader=dataloader)
+# %%
