@@ -15,6 +15,14 @@ class JBF_net(nn.Module):
     
     def __init__(self, kernel_size=7, bil_filt_size=3, num_blocks=4):
 
+        """! Class implementation of JBFnet
+        @param kernel_size  Receptive field size of the kernel needed for estimating the filter functions. Should be an odd number, and reaches the desired receptive field by stacking 3 x 3 layers.
+        @param bil_filt_size  Size of the 3D bilateral filter which is calculated in the JBF block. Should be an odd number atleast 2 smaller than kernel_size.
+        @param num_blocks   Number of JBF blocks needed. Atleast 1 block is necessary.
+        @return  JBFnet object
+        """
+
+
         assert kernel_size > bil_filt_size
         assert num_blocks > 0
 
@@ -70,7 +78,9 @@ class JBF_net(nn.Module):
             x = F.relu(self.blocks[i](x, self.spat_kernel, guide_im))
             x = F.relu( x + self.alfas[i]( x - inp[:, :, centre_shape:-centre_shape]) * ( x - inp[:, :, centre_shape:-centre_shape]) )
             int_results.append(x.clone())
-            x = F.relu(torch.cat((inp[:, :, centre_shape - floor(self.bil_filt_size/2):centre_shape], x, inp[:, :, centre_shape + floor(self.bil_filt_size/2):-(centre_shape - floor(self.bil_filt_size/2))]), dim = 2))
+            if i != (len(self.blocks) - 1):
+                x = F.relu(torch.cat((inp[:, :, centre_shape - floor(self.bil_filt_size/2):centre_shape], x, \
+                    inp[:, :, centre_shape + floor(self.bil_filt_size/2):-(centre_shape - floor(self.bil_filt_size/2))]), dim = 2))
 
-        return x, prior, int_results
+        return x, prior, int_results[:-1]
 

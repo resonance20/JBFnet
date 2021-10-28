@@ -54,9 +54,10 @@ class JBFnet_trainer():
                 
                 #Forward pass
                 _, prior, _= self.net(noisy_in)
+                shrinkage = int((noisy_in.shape[2] - prior.shape[2])/2)
                 
                 #Calculate loss
-                loss = nn.MSELoss()(prior, phantom_in)
+                loss = nn.MSELoss()(prior, phantom_in[:, : shrinkage:-shrinkage])
                 
                 #Backprop and update
                 loss.backward()
@@ -103,7 +104,6 @@ class JBFnet_trainer():
                 phantom_in = phantom_in/4096
                 
                 phantom_in = phantom_in.cuda()
-                ph_slice = phantom_in[:, :, 4:5, :, :]
                 noisy_in = noisy_in.cuda()
                 noisy_in.requires_grad=True
 
@@ -111,14 +111,16 @@ class JBFnet_trainer():
                 
                 #Forward pass
                 im4, prior, int_result = self.net(noisy_in)
+                shrinkage_prior = int((noisy_in.shape[2] - prior.shape[2])/2)
+                shrinkage_output = int((noisy_in.shape[2] - im4.shape[2])/2)
             
                 #Calculate deep supervision loss
-                prim_loss = self.comb_loss(im4, ph_slice)
-                prior_loss = nn.MSELoss()(prior, phantom_in)
+                prim_loss = self.comb_loss(im4, phantom_in[:, : shrinkage_output:-shrinkage_output])
+                prior_loss = nn.MSELoss()(prior, phantom_in[:, : shrinkage_prior:-shrinkage_prior])
                 aux_loss = 0
                 
                 for f in int_result:
-                    aux_loss += self.comb_loss(f, ph_slice)
+                    aux_loss += self.comb_loss(f, phantom_in[:, : shrinkage_output:-shrinkage_output])
 
                 loss = prim_loss + 0.1 * prior_loss + 0.1 * aux_loss
                 loss.backward()
@@ -136,6 +138,6 @@ class JBFnet_trainer():
 
             if (epoch + 1)%5==0:
                 print('Saving model...')
-                torch.save(JBFnet.state_dict(), 'models/JBFnet_'+str(epoch+1)+'.pth')
+                torch.save(self.net.state_dict(), 'models/JBFnet_'+str(epoch+1)+'.pth')
 
         print('Training complete!')
